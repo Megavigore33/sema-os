@@ -1,3 +1,9 @@
+##################################################
+###  Code fait par Tristan Radaelli--Quillacq  ###
+###  SemaOS - Interface web pour SemaBox       ###
+###  version : 0.1 - 29/01/2023                ###
+##################################################
+
 from flask import Flask, request, redirect, url_for
 from views.fragments import nomClient, pingResult, debitResult, netscanResult, pingHistory, publicIPFile
 from scripts.network_scanner import scan, translate_result
@@ -6,30 +12,32 @@ import datetime
 
 server = Flask(__name__)
 
+# Redirection de la racine vers /home
 @server.route('/', methods=['GET'])
 def rootpath():
     return redirect('/home')
 
+# Page /home
 @server.route('/home', methods=['GET'])
 @server.route('/home/<typeToShow>', methods=['GET'])
 def index(typeToShow = ""):
     
+    # Récupération du nom du client
     clName = nomClient()
     
+    # Gestion des requêtes GET
     if request.method == "GET":
-        
-        if typeToShow == "home":
-            dl = bytes()
-            up = bytes()
         
         if typeToShow == "debit":
             open("output/debit.txt", "w").truncate(0)
+            # Exécute un test de débit
             subprocess.run(["python3 scripts/testdebit.py"], shell=True)
             
             #return redirect(url_for('index', typeToShow = "debit"))
         
         if typeToShow == "ping":
             open("output/pinglist.txt", "w").truncate(0)
+            # Exécute un ping
             ping = subprocess.check_output("ping -c 5 8.8.8.8 | tail -1 | awk '{print $4}' | cut -d '/' -f 2", shell=True)
             goodping = ping.decode()
             firstnow = datetime.datetime.now()
@@ -43,33 +51,24 @@ def index(typeToShow = ""):
                 
         if typeToShow == "iprefresh":
             open("output/publicip.txt", "w").truncate(0)
-            ip = subprocess.check_output("curl -s http://monip.org | sed -n 's/.*IP : \([0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\).*/\1/p'")
+            # Récupération de l'IP publique
+            ip = subprocess.check_output("curl -s http://monip.org | sed -n 's/.*IP : \([0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\).*/\\1/p'", shell=True)
+            sip = str(ip)
+            sip = sip.replace("b", "")
+            sip = sip.replace("'", "")
             filename = "output/publicip.txt"
 
             with open(filename, 'a') as f:
-                f.write(f'{ip} \n')
+                f.write(f'{sip} \n')
                 
             #return redirect(url_for('index',typeToShow = "ping"))
-
-    # if request.method == "POST":
-    #     if typeToShow == "Ping":
-    #         ping = subprocess.check_output("ping -c 5 8.8.8.8 | tail -1 | awk '{print $4}' | cut -d '/' -f 2", shell=True)
-    #         goodping = ping.decode()
-    #         firstnow = datetime.datetime.now()
-    #         now = (firstnow.strftime("%Y-%m-%d %H:%M:%S"))
-
-    #         filename = "./output/pinglist.txt"
-
-    #         with open(filename, 'a') as f:
-    #             f.write(f'Date : {now} \n')
-    #             f.write(f'Ping : {goodping} \n')
-                
-    #         return redirect('/',typeToShow = "ping")
     
+    # Récupération des valeurs des scripts
     pingString = pingResult()
     debitString = debitResult()
     publicIP = publicIPFile()
     
+    # Génération du HTML de la page /home
     html = '''
     <!DOCTYPE html>
     <html lang="en">
@@ -96,25 +95,28 @@ def index(typeToShow = ""):
     ''' 
     return html
 
-
+# Page /netscan
 @server.route('/netscan', methods=['GET', 'POST'])
 def netscanPage():
+    
+    # Gestion de la requête POST (pour exécuter un netscan)
     if request.method == "POST":
         open("output/netscan.txt", "w").truncate(0)
-        portsString = request.form['portsInput'].split()
+        portsString = request.form['portsInput'].split() # Récupération des ports saisis
         portsInt = []
         for i in portsString:
             portsInt.append(int(i))
-        ipaddr = request.form['IPInput']
-        result = scan(ipaddr, portsInt)
+        ipaddr = request.form['IPInput'] # Récupération de l'IP saisie
+        result = scan(ipaddr, portsInt) # Fait le netscan avec les infos récupérées
         # netscanData = create_result(result)
         translate_result(result)
         
-        return redirect(url_for('netscanPage'))
+        return redirect(url_for('netscanPage')) # Actualise la page
     
     
-    data = netscanResult()
+    data = netscanResult() # Affichage du dernier netscan effectué
     
+    # Génération du HTML de la page /netscan
     html = '''
     <!DOCTYPE html>
     <html lang="en">
@@ -143,6 +145,7 @@ def netscanPage():
     ''' 
     return html
 
+# Page de l'historique de ping
 @server.route('/ping-history', methods=['GET'])
 def pingHistoryPage():
     

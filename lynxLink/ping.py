@@ -11,5 +11,6 @@ def main():
     filename = "./ping.txt"
 
     with open(filename, 'a') as f:
-        f.write(f'Date : {now} \n')
-        f.write(f'| Ping : {goodping} \n')
+        f.write(f'Date : {now}| Ping : {goodping} \n')
+        
+main()
