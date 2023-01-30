@@ -9,6 +9,7 @@ from views.fragments import nomClient, pingResult, debitResult, netscanResult, p
 from scripts.network_scanner import scan, translate_result
 import subprocess
 import datetime
+import urllib.request
 
 server = Flask(__name__)
 
@@ -24,6 +25,14 @@ def index(typeToShow = ""):
     
     # Récupération du nom du client
     clName = nomClient()
+    
+    # Regarde la dernière version en ligne de SemaOS
+    data = urllib.request.urlopen("https://raw.githubusercontent.com/Megavigore33/sema-os/main/output/version.txt")
+    for line in data:
+        lastVersion = line.decode('utf-8')
+    # Regarde la version actuelle de semaOS
+    with open("output/version.txt") as file:
+        actualVersion = file.read()
     
     # Gestion des requêtes GET
     if request.method == "GET":
@@ -61,12 +70,24 @@ def index(typeToShow = ""):
             with open(filename, 'a') as f:
                 f.write(f'{sip} \n')
                 
+        if typeToShow == "updater":
+            # Lance la mise à jour
+            subprocess.run("sudo python3 ../SemaOS-Updater/updater.py", shell=True)
+                
             #return redirect(url_for('index',typeToShow = "ping"))
     
     # Récupération des valeurs des scripts
     pingString = pingResult()
     debitString = debitResult()
     publicIP = publicIPFile()
+    
+    majavailable = ""
+    if int(actualVersion)<int(lastVersion):
+        majavailable = '''
+            <div>
+                <p>Mise à jour disponible !<a class="c" href="/home/updater"> Cliquez ici pour mettre à jour</a></p>
+            </div>
+        '''
     
     # Génération du HTML de la page /home
     html = '''
@@ -79,7 +100,7 @@ def index(typeToShow = ""):
             <link rel="stylesheet" href="style.css">
             <title>Tableau de bord</title>
         </head>
-        <body>
+        <body> ''' + majavailable + '''
             <div>
                 <h1>SemaBox - ''' + clName + '''</h1>
                 <h4><a class="c" href="/home/iprefresh">IP Publique</a> : </h4><p>''' + publicIP + '''</p><br>

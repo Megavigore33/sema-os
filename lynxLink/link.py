@@ -1,7 +1,7 @@
 ##################################################
 ###  Code fait par Tristan Radaelli--Quillacq  ###
 ###  Client SemaLynx                           ###
-###  version : 0.1 - 29/01/2023                ###
+###  version : 0.2 - 29/01/2023                ###
 ##################################################
 
 import socket
@@ -9,6 +9,8 @@ import select
 import errno
 import subprocess
 from threading import Thread
+from scan import scan, create_result
+
 
 HEADER_LENGTH = 10
 
@@ -17,6 +19,8 @@ PORT = 5001
 
 my_username = "clientTest1"
 
+netscanResult = ""
+
 # Fonction exécutant un reboot
 def rebootAsked():
     subprocess.run(["reboot"], shell=True)
@@ -24,6 +28,19 @@ def rebootAsked():
 # Fonction exécutant le script de ping
 def pingAsked():
     subprocess.run(["python3 ping.py"], shell=True)
+
+def netscanAsked():
+    portsString = messageSplit[3].split(",") # Récupération des ports saisis
+    portsInt = []
+    for i in portsString:
+        portsInt.append(int(i))
+    ipaddr = messageSplit[2] # Récupération de l'IP saisie
+    result = scan(ipaddr, portsInt) # Fait le netscan avec les infos récupérées
+    # netscanData = create_result(result)
+    create_result(result)
+    
+def debitAsked():
+    subprocess.run(["python3 debit.py"], shell=True)
 
 # Créé un client socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -91,6 +108,7 @@ while True:
                 messageSplit = message.split()
                 pingRequester = messageSplit[1]
                 if pingRequester == my_username:
+                    # Si il nous est adressé, exécuter le ping
                     t1 = Thread(target=pingAsked) # Attribue un thread pour l'exécution du ping
                     t1.start() # Exécute le ping
                     
@@ -110,7 +128,8 @@ while True:
                 debitRequester = messageSplit[1]
                 if debitRequester == my_username:
                     # Si il nous est adressé, exécuter le test de débit
-                    subprocess.run(["python3 ../scripts/testdebit.py"], shell=True)
+                    t3 = Thread(target=debitAsked) # Attribue un thread pour l'exécution du test de débit
+                    t3.start() # Exécute le test de débit
                     data = "debit ok!"
                     message = data.encode('utf-8')
                     message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
@@ -126,7 +145,9 @@ while True:
                 messageSplit = message.split()
                 netscanRequester = messageSplit[1]
                 if netscanRequester == my_username:
-                    # Si il nous est adressé, exécuter le netscan (pas fait)
+                    # Si il nous est adressé, exécuter le netscan
+                    t2 = Thread(target=netscanAsked()) # Attribue un thread pour l'exécution du netscan
+                    t2.start() # Exécute le netscan
                     data = "netscan ok!"
                     message = data.encode('utf-8')
                     message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
@@ -154,7 +175,41 @@ while True:
                     message = data.encode('utf-8')
                     message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
                     client_socket.send(message_header + message)
-            
+            elif "/viewdebit" in message:
+                # Si viewdebit, vérifié qu'il nous est adressé
+                messageSplit = message.split()
+                viewdebitRequester = messageSplit[1]
+                if viewdebitRequester == my_username:
+                    # Transmet les logs du dernier test de debit effectué
+                    pingfile = open("./debit.txt", "r")
+                    data = pingfile.read()
+                    message = data.encode('utf-8')
+                    message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+                    client_socket.send(message_header + message)
+                else:
+                    # Paquet pour un autre client
+                    data = "nok"
+                    message = data.encode('utf-8')
+                    message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+                    client_socket.send(message_header + message)
+            elif "/viewnetscan" in message:
+                # Si netscan, vérifié qu'il nous est adressé
+                messageSplit = message.split()
+                netscanRequester = messageSplit[1]
+                if netscanRequester == my_username:
+                    # Transmet les logs du dernier netscan effectué
+                    nscanfile = open("./netscan.txt", "r")
+                    data = nscanfile.read()
+                    message = data.encode('utf-8')
+                    message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+                    client_socket.send(message_header + message)
+                else:
+                    # Paquet pour un autre client
+                    data = "nok"
+                    message = data.encode('utf-8')
+                    message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+                    client_socket.send(message_header + message)
+                    
     # Gestion d'exception de lecture du paquet
     except IOError as e:
         if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
