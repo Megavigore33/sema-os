@@ -29,18 +29,16 @@ def rebootAsked():
 def pingAsked():
     subprocess.run(["python3 ping.py"], shell=True)
 
-def netscanAsked():
-    portsString = messageSplit[3].split(",") # Récupération des ports saisis
-    portsInt = []
-    for i in portsString:
-        portsInt.append(int(i))
-    ipaddr = messageSplit[2] # Récupération de l'IP saisie
-    result = scan(ipaddr, portsInt) # Fait le netscan avec les infos récupérées
+def netscanAsked(ip, portsList):
+    result = scan(ip, portsList) # Fait le netscan avec les infos récupérées
     # netscanData = create_result(result)
     create_result(result)
     
 def debitAsked():
     subprocess.run(["python3 debit.py"], shell=True)
+
+def updateAsked():
+    subprocess.run(["python3 .../SemaOS-Updater/updater.py"], shell=True)
 
 # Créé un client socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -146,7 +144,12 @@ while True:
                 netscanRequester = messageSplit[1]
                 if netscanRequester == my_username:
                     # Si il nous est adressé, exécuter le netscan
-                    t2 = Thread(target=netscanAsked()) # Attribue un thread pour l'exécution du netscan
+                    portsString = messageSplit[3].split(",") # Récupération des ports saisis
+                    portsInt = []
+                    for i in portsString:
+                        portsInt.append(int(i))
+                    ipaddr = messageSplit[2] # Récupération de l'IP saisie
+                    t2 = Thread(target=netscanAsked(ipaddr, portsInt)) # Attribue un thread pour l'exécution du netscan
                     t2.start() # Exécute le netscan
                     data = "netscan ok!"
                     message = data.encode('utf-8')
@@ -205,6 +208,20 @@ while True:
                     client_socket.send(message_header + message)
                 else:
                     # Paquet pour un autre client
+                    data = "nok"
+                    message = data.encode('utf-8')
+                    message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+                    client_socket.send(message_header + message)
+            elif "/update" in message:
+                messageSplit = message.split()
+                updateRequester = messageSplit[1]
+                if updateRequester == my_username:
+                    data = "update ok!"
+                    message = data.encode('utf-8')
+                    message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+                    client_socket.send(message_header + message)
+                    updateAsked() # Exécute le reboot
+                else:
                     data = "nok"
                     message = data.encode('utf-8')
                     message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')

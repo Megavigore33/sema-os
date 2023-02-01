@@ -3,7 +3,7 @@ import argparse
 import socket
 
 def check_ports(ip, ports):
-    with open("output/netscan.txt", "a") as f:
+    with open("./netscan.txt", "a") as f:
         f.write("-----------------------------------\nAdresse IP\tPort\t\tOuvert/Fermé\n-----------------------------------\n")
         for port in ports:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

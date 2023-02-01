@@ -145,11 +145,11 @@ def netscanPage():
             <meta charset="UTF-8">
             <meta http-equiv="X-UA-Compatible" content="IE=edge">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Tableau de bord - Netscan</title>
+            <title>Tableau de bord - Scan Réseau</title>
         </head>
         <body>
             <div>
-                <h1>NetScan</h1>
+                <h1>Scan de réseau</h1>
                 <form action = "http://localhost:5000/netscan" method = "post">
                     <p>Saisir votre IP et un ou des ports à vérifier (séparés par des espaces) :</p>
                     <p><input type = "text" placeholder = "IP" name = "IPInput" /></p>
