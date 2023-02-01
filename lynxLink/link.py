@@ -14,7 +14,7 @@ from scan import scan, create_result
 
 HEADER_LENGTH = 10
 
-IP = "172.20.10.3"
+IP = "172.20.10.5"
 PORT = 5001
 
 my_username = "clientTest1"
